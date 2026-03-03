@@ -1,0 +1,1120 @@
+diff --git a/__resources__/plugin.yml b/__resources__/plugin.yml
+index 8cb2546..15594a1 100644
+--- a/__resources__/plugin.yml
++++ b/__resources__/plugin.yml
+@@ -3,6 +3,7 @@ version: 1.3.1
+ main: uhfinn.dailyrewardsplus.Main
+ api-version: 1.16
+ description: A plugin that handles users daily rewards
++folia-supported: true # Luma - folia
+ commands:
+   daily:
+     description: Claim your daily reward!
+diff --git a/uhfinn/dailyrewardsplus/Commands/daily.java b/uhfinn/dailyrewardsplus/Commands/daily.java
+index 4536fe4..dd1ca59 100644
+--- a/uhfinn/dailyrewardsplus/Commands/daily.java
++++ b/uhfinn/dailyrewardsplus/Commands/daily.java
+@@ -1155,7 +1155,7 @@ public class daily implements CommandExecutor {
+                            }
+ 
+                            var9.setCustomNameVisible(true);
+-                           var9.teleport(var8);
++                           var9.teleportAsync(var8); // Luma - folia
+                         }
+ 
+                         return true;
+@@ -1325,10 +1325,11 @@ public class daily implements CommandExecutor {
+                ConfigDataPull.PluginPrefix() + "&fGathering data...\n&7Note: this may take some time if you have a large server using flat-file storage."
+             )
+          );
+-         Bukkit.getScheduler()
+-            .runTaskAsynchronously(
++         // Luma start - folia
++         Bukkit.getAsyncScheduler()
++            .runNow(
+                Main.getPlugin(Main.class),
+-               () -> {
++               (t) -> {
+                   DecimalFormat var1x = new DecimalFormat("0.00");
+                   String var2x = Main.INSTANCE().getDescription().getVersion();
+                   int var3 = 0;
+@@ -1416,6 +1417,7 @@ public class daily implements CommandExecutor {
+                   );
+                }
+             );
++         // Luma end - folia
+       }
+ 
+       return true;
+diff --git a/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java b/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
+index 35d3e80..03f2b15 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
++++ b/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
+@@ -151,12 +151,14 @@ public class BreakDailyChest implements Listener {
+                         )
+                      );
+                      Animations.ChestAnimation(var3, false);
+-                     Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
+-                        if ((Integer)var5.get(new NamespacedKey(Main.getPlugin(Main.class), "inUse"), PersistentDataType.INTEGER) == 1) {
++                     // Luma start - folia
++                     Bukkit.getRegionScheduler().runDelayed(Main.getPlugin(Main.class), var3.getLocation(), (t) -> {
++                        if (var5.get(new NamespacedKey(Main.getPlugin(Main.class), "inUse"), PersistentDataType.INTEGER) == 1) {
+                            Animations.ChestAnimation(var3, true);
+                            Main.INSTANCE().debugger.debug("Re-parsed chest animation due to chest attempted break", 3);
+                         }
+                      }, 5L);
++                     // Luma end - folia
+                   }
+                }
+             }
+diff --git a/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java b/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
+index 9da385b..303b93f 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
++++ b/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
+@@ -1,6 +1,8 @@
+ package uhfinn.dailyrewardsplus.Listeners;
+ 
+ import java.util.List;
++
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+ import net.md_5.bungee.api.chat.ClickEvent;
+ import net.md_5.bungee.api.chat.TextComponent;
+ import net.md_5.bungee.api.chat.ClickEvent.Action;
+@@ -29,7 +31,7 @@ public class PlayerJoin implements Listener {
+    public void PlayerSetUp(PlayerJoinEvent var1) {
+       Main.INSTANCE().debugger.debug(var1.getPlayer().getName() + " joined", 2);
+       Player var2 = var1.getPlayer();
+-      Bukkit.getScheduler().runTaskAsynchronously(Main.getPlugin(Main.class), () -> DataFactory.initUser(var2));
++      Bukkit.getAsyncScheduler().runNow(Main.getPlugin(Main.class), (t) -> DataFactory.initUser(var2)); // Luma - folia
+    }
+ 
+    @EventHandler
+@@ -40,24 +42,27 @@ public class PlayerJoin implements Listener {
+       if (!var2.getBoolean("RewardAutoClaim") || !var3.hasPermission("daily.claim") && !var3.hasPermission("daily.*") && !var3.isOp()) {
+          if (var2.getBoolean("RewardInstantPopup") && (var3.hasPermission("daily.claim") || var3.hasPermission("daily.*") || var3.isOp())) {
+             Main.INSTANCE().debugger.debug("Initiated 20 tick countdown for reward popup for " + var3.getName(), 3);
+-            Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
++            // Luma start - folia
++            var3.getScheduler().runDelayed(Main.getPlugin(Main.class), (t) -> {
+                Main.INSTANCE().debugger.debug("Reward popup processed for " + var3.getName(), 3);
+                Long var3x = getTimeValues.getTime();
+                if (var3x > DataFactory.getPlayerData(var3).getNextReward()) {
+                   var4[0] = var2.getInt("RewardReminderCooldown") * 20L;
+                   GUIModular.runGUI(var3, null);
+                }
+-            }, 20L);
++            }, null, 20L);
++            // Luma end - folia
+          }
+       } else if (RewardChecking.ready(var3)) {
+          Main.INSTANCE().debugger.debug("Firing reward auto claim event for " + var3.getName() + ", type:join", 2);
+          serveAutoReward(var3);
+       }
+ 
+-      int var5 = Bukkit.getScheduler()
+-         .scheduleSyncRepeatingTask(
++      // Luma start - folia
++      ScheduledTask var5 = var3.getScheduler()
++         .runAtFixedRate(
+             Main.getPlugin(Main.class),
+-            () -> {
++            (t) -> {
+                FileConfiguration var1x = CustomYMLFiles.getCustomConfigFile("Messages.yml");
+                FileConfiguration var2x = CustomYMLFiles.getCustomConfigFile("Config.yml");
+                if (RewardChecking.ready(var3) && RewardChecking.checkPlayTimeValidity(var3, false)) {
+@@ -85,9 +90,11 @@ public class PlayerJoin implements Listener {
+                   }
+                }
+             },
++            null,
+             var4[0],
+             var2.getInt("DailyRewardClaimReminder") * 20L
+          );
++      // Luma end - folia
+       PlayerLeave.activeRewardReminders.put(var3, var5);
+    }
+ 
+@@ -102,20 +109,23 @@ public class PlayerJoin implements Listener {
+             Main.INSTANCE().debugger.debug(var0.getName() + "'s Daily Reward streak was reset due to completion", 1);
+          }
+ 
+-         Bukkit.getScheduler()
+-            .scheduleSyncDelayedTask(
++         // Luma start - folia
++         var0.getScheduler()
++            .runDelayed(
+                Main.getPlugin(Main.class),
+-               () -> {
++               (t) -> {
+                   ConsoleCommandSender var2x = Bukkit.getServer().getConsoleSender();
+                   List<String> var3x = GetReward.command(var3.getCurrentStreak() + 1); // Luma - decompile
+ 
+-                  for (String var5 : var3x) {
+-                     if (var5 != null && !var5.equals("") && !var5.equals(" ")) {
+-                        String var6 = Hex.hexTranslate(PlaceholderReplacement.replace(var5, var0));
+-                        Bukkit.dispatchCommand(var2x, var6);
+-                        Main.INSTANCE().debugger.debug("Fired command: /" + var6, 3);
++                  Bukkit.getGlobalRegionScheduler().run(Main.INSTANCE(), (t2) -> {
++                     for (String var5 : var3x) {
++                        if (var5 != null && !var5.equals("") && !var5.equals(" ")) {
++                           String var6 = Hex.hexTranslate(PlaceholderReplacement.replace(var5, var0));
++                           Bukkit.dispatchCommand(var2x, var6);
++                           Main.INSTANCE().debugger.debug("Fired command: /" + var6, 3);
++                        }
+                      }
+-                  }
++                  });
+ 
+                   var0.sendMessage(
+                      Hex.hexTranslate(
+@@ -131,8 +141,10 @@ public class PlayerJoin implements Listener {
+                   DataFactory.updateDatabase(var0, true);
+                   Main.INSTANCE().debugger.debug("Fired " + var3x.size() + "x Command's to " + var0.getName() + " due to auto-claim", 1);
+                },
++               null,
+                50L
+             );
++         // Luma end - folia
+       }
+    }
+ 
+diff --git a/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java b/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
+index 0cd6114..f427cd7 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
++++ b/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
+@@ -2,6 +2,8 @@ package uhfinn.dailyrewardsplus.Listeners;
+ 
+ import java.sql.SQLException;
+ import java.util.HashMap;
++
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+ import org.bukkit.Bukkit;
+ import org.bukkit.entity.Player;
+ import org.bukkit.event.EventHandler;
+@@ -12,16 +14,16 @@ import uhfinn.dailyrewardsplus.Modules.PlayerData.DataFactory;
+ import uhfinn.dailyrewardsplus.Modules.Time.playTimeHandling;
+ 
+ public class PlayerLeave implements Listener {
+-   public static HashMap<Player, Integer> activeRewardReminders = new HashMap<>();
++   public static HashMap<Player, ScheduledTask> activeRewardReminders = new HashMap<>();
+ 
+    @EventHandler
+    public void onPlayerLeaver(PlayerQuitEvent var1) {
+       Main.INSTANCE().debugger.debug(var1.getPlayer().getName() + " left", 2);
+       Player var2 = var1.getPlayer();
+       if (activeRewardReminders.containsKey(var2)) {
+-         int var3 = activeRewardReminders.get(var2);
++         ScheduledTask var3 = activeRewardReminders.get(var2); // Luma - folia
+          Main.INSTANCE().debugger.debug(var1.getPlayer().getName() + " had an active reward reminder key (" + var3 + "), cleared from memory", 3);
+-         Bukkit.getScheduler().cancelTask(var3);
++         var3.cancel(); // Luma - folia
+          activeRewardReminders.remove(var2);
+       }
+ 
+diff --git a/uhfinn/dailyrewardsplus/Listeners/PlayerOpenRewardChest.java b/uhfinn/dailyrewardsplus/Listeners/PlayerOpenRewardChest.java
+index c475c3a..e356477 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/PlayerOpenRewardChest.java
++++ b/uhfinn/dailyrewardsplus/Listeners/PlayerOpenRewardChest.java
+@@ -110,9 +110,11 @@ public class PlayerOpenRewardChest implements Listener {
+                                        case "lightning":
+                                           ChestEffects.Lightning(var4, var3, var2, var8, var5, var6, var12);
+                                           break;
+-                                       case "christmas":
+-                                          ChestEffects.Christmas(var4, var3, var2, var8, var5, var6, var12);
+-                                          break;
++                                       // Luma start - folia: This code is too awful for me to deal with this - Jsinco
++//                                       case "christmas":
++//                                          ChestEffects.Christmas(var4, var3, var2, var8, var5, var6, var12);
++//                                          break;
++                                       // Luma end - folia
+                                        default:
+                                           ChestEffects.popOut(var4, var3, var2, var8, var5, var6, var12);
+                                     }
+diff --git a/uhfinn/dailyrewardsplus/Listeners/UpdateChecker.java b/uhfinn/dailyrewardsplus/Listeners/UpdateChecker.java
+index 02adada..0f0c5d5 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/UpdateChecker.java
++++ b/uhfinn/dailyrewardsplus/Listeners/UpdateChecker.java
+@@ -23,10 +23,11 @@ public class UpdateChecker implements Listener {
+ 
+    @EventHandler
+    public void PlayerJoin(PlayerJoinEvent var1) {
+-      Bukkit.getScheduler()
+-         .runTaskAsynchronously(
++      // Luma start - folia
++      Bukkit.getAsyncScheduler()
++         .runNow(
+             Main.INSTANCE(),
+-            () -> {
++            (t) -> {
+                FileConfiguration var2 = CustomYMLFiles.getCustomConfigFile("Config.yml");
+                if (var2.getBoolean("CheckForUpdates")) {
+                   Player var3 = var1.getPlayer();
+@@ -51,10 +52,11 @@ public class UpdateChecker implements Listener {
+                         ClickerMessage var7 = new ClickerMessage(Hex.hexTranslate("&fDownload it now at: &6&nhttps://www.spigotmc.org/resources/" + var4))
+                            .openURL("https://www.spigotmc.org/resources/" + var4);
+                         Main.INSTANCE().debugger.debug("Prepared update message", 3);
+-                        Bukkit.getScheduler()
+-                           .scheduleSyncDelayedTask(
++                        // Luma start - folia
++                        var3.getScheduler()
++                           .runDelayed(
+                               Main.getPlugin(Main.class),
+-                              () -> {
++                              (tx) -> {
+                                  var3.sendMessage(
+                                     Hex.hexTranslate(ConfigDataPull.PluginPrefix() + "&fDailyRewards+ Version " + this.spigotVersion + " has been released!")
+                                  );
+@@ -62,12 +64,15 @@ public class UpdateChecker implements Listener {
+                                  var3.playSound(var3.getLocation(), Sound.BLOCK_BELL_USE, 5.0F, 1.0F);
+                                  Main.INSTANCE().debugger.debug("Sent update message after a 400 tick delay", 2);
+                               },
++                              null,
+                               400L
+                            );
++                        // Luma end - folia
+                      }
+                   }
+                }
+             }
+          );
++      // Luma end - folia
+    }
+ }
+diff --git a/uhfinn/dailyrewardsplus/Modules/ChestEffects.java b/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
+index 14265ca..65278a3 100644
+--- a/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
++++ b/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
+@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.inventory.meta.ItemMeta;
+ import org.bukkit.persistence.PersistentDataContainer;
+ import org.bukkit.persistence.PersistentDataType;
++import org.bukkit.plugin.Plugin;
+ import org.bukkit.scheduler.BukkitRunnable;
+ import org.bukkit.util.Vector;
+ import uhfinn.dailyrewardsplus.Main;
+@@ -50,17 +51,19 @@ public class ChestEffects {
+       var8.setCollidable(false);
+       var8.setBasePlate(false);
+       var8.setGravity(false);
+-      var8.teleport(var7);
++      var8.teleportAsync(var7); // Luma - folia
+       var8.setVisible(false);
+-      Bukkit.getScheduler()
+-         .scheduleSyncDelayedTask(
++      // Luma start - folia
++      var1.getScheduler()
++         .runDelayed(
+             Main.getPlugin(Main.class),
+-            () -> {
++            (t) -> {
+                var1.playSound(var1.getLocation(), Sound.ITEM_LODESTONE_COMPASS_LOCK, 5.0F, 1.0F);
+-               Bukkit.getScheduler()
+-                  .scheduleSyncDelayedTask(
++               Bukkit.getRegionScheduler()
++                  .runDelayed(
+                      Main.getPlugin(Main.class),
+-                     () -> {
++                     var0.getLocation(),
++                     t2 -> {
+                         Animations.ChestAnimation(var0, true);
+                         var1.stopSound(Sound.BLOCK_CHEST_OPEN);
+                         var7.setY(var7.getY() + 2.0);
+@@ -68,10 +71,11 @@ public class ChestEffects {
+                            var0.getWorld().spawnParticle(Particle.SMOKE_NORMAL, var7, 100, 0.1, 0.1, 0.1, 0.05);
+                         }
+ 
+-                        Bukkit.getScheduler()
+-                           .scheduleSyncDelayedTask(
++                        Bukkit.getRegionScheduler()
++                           .runDelayed(
+                               Main.getPlugin(Main.class),
+-                              () -> {
++                              var1.getLocation(),
++                              (t3) -> {
+                                  Location var7xxx = var1.getLocation();
+                                  var7xxx.setY(var7xxx.getY() + 20.0);
+                                  ItemStack var8x = GetReward.baseIconItemStack(var6);
+@@ -88,7 +92,7 @@ public class ChestEffects {
+                                  var8.addPassenger(var12);
+                                  PersistentDataContainer var13 = var12.getPersistentDataContainer();
+                                  var13.set(new NamespacedKey(Main.getPlugin(Main.class), "noPickupDRP"), PersistentDataType.INTEGER, 1);
+-                                 Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
++                                 var8.getScheduler().runDelayed(Main.getPlugin(Main.class), (t4) -> {
+                                     String var8xx = "[Day " + var6 + "]";
+                                     if (var2.contains("DayFormat")) {
+                                        var8xx = PAPIReplacement.ReplacePlaceholders(var1, PlaceholderReplacement.replaceDay(var2.getString("DayFormat"), var6));
+@@ -101,20 +105,21 @@ public class ChestEffects {
+ 
+                                     var1.playSound(var1.getLocation(), Sound.BLOCK_BUBBLE_COLUMN_BUBBLE_POP, 5.0F, 1.0F);
+                                     DeliverRewards.deliver(var1, var6);
+-                                    Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
++                                    var8.getScheduler().runDelayed(Main.getPlugin(Main.class), (t5) -> {
+                                        var8.setCustomNameVisible(false);
+-                                       Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
++                                       Bukkit.getRegionScheduler().runDelayed(Main.getPlugin(Main.class), var0.getLocation(), (t6) -> {
+                                           Animations.ChestAnimation(var0, false);
+-                                          Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
+-                                             var8.remove();
+-                                             var12.remove();
++                                          Plugin pl = Main.getPlugin(Main.class);
++                                          Bukkit.getGlobalRegionScheduler().runDelayed(Main.getPlugin(Main.class), (ta) -> {
++                                             var8.getScheduler().run(pl, a -> var8.remove(), null);
++                                             var12.getScheduler().run(pl, a -> var12.remove(), null);
+                                              var5.set(new NamespacedKey(Main.getPlugin(Main.class), "inUse"), PersistentDataType.INTEGER, 0);
+-                                             var4.update();
++                                             Bukkit.getRegionScheduler().run(pl, var0.getLocation(), (t7) -> var4.update());
+                                              Main.INSTANCE().debugger.debug("popOut animation was successful for " + var1.getName(), 3);
+                                           }, 6L);
+                                        }, 10L);
+-                                    }, 100L);
+-                                 }, 20L);
++                                    }, null, 100L);
++                                 }, null, 20L);
+                               },
+                               5L
+                            );
+@@ -122,8 +127,10 @@ public class ChestEffects {
+                      30L
+                   );
+             },
++            null,
+             5L
+          );
++      // Luma end - folia
+       return false;
+    }
+ 
+@@ -185,64 +192,65 @@ public class ChestEffects {
+       }
+ 
+       var1.openInventory(var8);
+-      Bukkit.getScheduler()
+-         .scheduleSyncDelayedTask(
++      // Luma start - folia
++      var1.getScheduler()
++         .runDelayed(
+             Main.getPlugin(Main.class),
+-            () -> {
++            (t) -> {
+                var1.openInventory(var16);
+                var1.playSound(var1.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0F, 1.0F);
+-               Bukkit.getScheduler()
+-                  .scheduleSyncDelayedTask(
++               var1.getScheduler()
++                  .runDelayed(
+                      Main.getPlugin(Main.class),
+-                     () -> {
++                     (t2) -> {
+                         var1.openInventory(var18);
+                         var1.playSound(var1.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0F, 1.0F);
+-                        Bukkit.getScheduler()
+-                           .scheduleSyncDelayedTask(
++                        var1.getScheduler()
++                           .runDelayed(
+                               Main.getPlugin(Main.class),
+-                              () -> {
++                              (t3) -> {
+                                  var1.openInventory(var20);
+                                  var1.playSound(var1.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0F, 1.0F);
+-                                 Bukkit.getScheduler()
+-                                    .scheduleSyncDelayedTask(
++                                 var1.getScheduler()
++                                    .runDelayed(
+                                        Main.getPlugin(Main.class),
+-                                       () -> {
++                                       (ax) -> {
+                                           var1.openInventory(var22);
+                                           var1.playSound(var1.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0F, 1.0F);
+-                                          Bukkit.getScheduler()
+-                                             .scheduleSyncDelayedTask(
++                                          var1.getScheduler()
++                                             .runDelayed(
+                                                 Main.getPlugin(Main.class),
+-                                                () -> {
++                                                (az) -> {
+                                                    var1.openInventory(var24);
+                                                    var1.playSound(var1.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 2.0F, 1.0F);
+-                                                   Bukkit.getScheduler()
+-                                                      .scheduleSyncDelayedTask(
++                                                   var1.getScheduler()
++                                                      .runDelayed(
+                                                          Main.getPlugin(Main.class),
+-                                                         () -> {
++                                                         (t4) -> {
+                                                             var24.setItem(0, new ItemStack(Material.AIR));
+                                                             var24.setItem(8, new ItemStack(Material.AIR));
+-                                                            Bukkit.getScheduler()
+-                                                               .scheduleSyncDelayedTask(
++                                                            var1.getScheduler()
++                                                               .runDelayed(
+                                                                   Main.getPlugin(Main.class),
+-                                                                  () -> {
++                                                                  (t5) -> {
+                                                                      var24.setItem(1, new ItemStack(Material.AIR));
+                                                                      var24.setItem(7, new ItemStack(Material.AIR));
+-                                                                     Bukkit.getScheduler()
+-                                                                        .scheduleSyncDelayedTask(
++                                                                     var1.getScheduler()
++                                                                        .runDelayed(
+                                                                            Main.getPlugin(Main.class),
+-                                                                           () -> {
++                                                                           (t6) -> {
+                                                                               var24.setItem(2, new ItemStack(Material.AIR));
+                                                                               var24.setItem(6, new ItemStack(Material.AIR));
+-                                                                              Bukkit.getScheduler()
+-                                                                                 .scheduleSyncDelayedTask(
++                                                                              var1.getScheduler()
++                                                                                 .runDelayed(
+                                                                                     Main.getPlugin(Main.class),
+-                                                                                    () -> {
++                                                                                    (t7) -> {
+                                                                                        var24.setItem(3, new ItemStack(Material.AIR));
+                                                                                        var24.setItem(5, new ItemStack(Material.AIR));
+-                                                                                       Bukkit.getScheduler()
+-                                                                                          .scheduleSyncDelayedTask(
++                                                                                       var1.getScheduler()
++                                                                                          .runDelayed(
+                                                                                              Main.getPlugin(Main.class),
+-                                                                                             () -> {
++                                                                                             (t8) -> {
+                                                                                                 var1.playSound(
+                                                                                                    var1.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 2.0F, 1.0F
+                                                                                                 );
+@@ -271,10 +279,10 @@ public class ChestEffects {
+                                                                                                 var4xxxxx.setItemMeta(var7xx);
+                                                                                                 var24.setItem(4, var4xxxxx);
+                                                                                                 DeliverRewards.deliver(var1, var6);
+-                                                                                                Bukkit.getScheduler()
+-                                                                                                   .scheduleSyncDelayedTask(
++                                                                                                var1.getScheduler()
++                                                                                                   .runDelayed(
+                                                                                                       Main.getPlugin(Main.class),
+-                                                                                                      () -> {
++                                                                                                      (t9) -> {
+                                                                                                          if (var1.getOpenInventory()
+                                                                                                             .getTitle()
+                                                                                                             .equals(
+@@ -292,38 +300,39 @@ public class ChestEffects {
+                                                                                                                );
+                                                                                                          }
+                                                                                                       },
+-                                                                                                      100L
++                                                                                                      null,100L
+                                                                                                    );
+                                                                                              },
+-                                                                                             4L
++                                                                                             null,4L
+                                                                                           );
+                                                                                     },
+-                                                                                    2L
++                                                                                    null,2L
+                                                                                  );
+                                                                            },
+-                                                                           2L
++                                                                           null,2L
+                                                                         );
+                                                                   },
+-                                                                  2L
++                                                                  null,2L
+                                                                );
+                                                          },
+-                                                         2L
++                                                         null,2L
+                                                       );
+                                                 },
+-                                                10L
++                                                null,10L
+                                              );
+                                        },
+-                                       10L
++                                       null,10L
+                                     );
+                               },
+-                              10L
++                              null,10L
+                            );
+                      },
+-                     10L
++                     null,10L
+                   );
+             },
+-            10L
++            null,10L
+          );
++      // Luma end - folia
+       return false;
+    }
+ 
+@@ -343,50 +352,57 @@ public class ChestEffects {
+          var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+       }
+ 
+-      Bukkit.getScheduler()
+-         .scheduleSyncDelayedTask(
++      // Luma start - folia
++      Bukkit.getRegionScheduler()
++         .runDelayed(
+             Main.getPlugin(Main.class),
+-            () -> {
++            var0.getLocation(),
++            (t) -> {
+                if (var2.getBoolean("RedeemParticleEffects")) {
+                   var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                }
+ 
+-               Bukkit.getScheduler()
+-                  .scheduleSyncDelayedTask(
++               Bukkit.getRegionScheduler()
++                  .runDelayed(
+                      Main.getPlugin(Main.class),
+-                     () -> {
++                     var0.getLocation(),
++                     t2 -> {
+                         if (var2.getBoolean("RedeemParticleEffects")) {
+                            var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                         }
+ 
+-                        Bukkit.getScheduler()
+-                           .scheduleSyncDelayedTask(
++                        Bukkit.getRegionScheduler()
++                           .runDelayed(
+                               Main.getPlugin(Main.class),
+-                              () -> {
++                              var0.getLocation(),
++                              (t3) -> {
+                                  if (var2.getBoolean("RedeemParticleEffects")) {
+                                     var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                                  }
+ 
+-                                 Bukkit.getScheduler()
+-                                    .scheduleSyncDelayedTask(
++                                 Bukkit.getRegionScheduler()
++                                    .runDelayed(
+                                        Main.getPlugin(Main.class),
+-                                       () -> {
++                                       var0.getLocation(),
++                                       (t4) -> {
+                                           if (var2.getBoolean("RedeemParticleEffects")) {
+                                              var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                                           }
+ 
+-                                          Bukkit.getScheduler()
+-                                             .scheduleSyncDelayedTask(
++                                          Bukkit.getRegionScheduler()
++                                             .runDelayed(
+                                                 Main.getPlugin(Main.class),
+-                                                () -> {
++                                                var0.getLocation(),
++                                                (t5) -> {
+                                                    if (var2.getBoolean("RedeemParticleEffects")) {
+                                                       var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                                                    }
+ 
+-                                                   Bukkit.getScheduler()
+-                                                      .scheduleSyncDelayedTask(
++                                                   Bukkit.getRegionScheduler()
++                                                      .runDelayed(
+                                                          Main.getPlugin(Main.class),
+-                                                         () -> {
++                                                         var0.getLocation(),
++                                                         (t6) -> {
+                                                             if (var2.getBoolean("RedeemParticleEffects")) {
+                                                                var0.getWorld().spawnParticle(Particle.CLOUD, var8, 20, 0.15, 0.15, 0.15);
+                                                             }
+@@ -404,7 +420,7 @@ public class ChestEffects {
+                                                             var9.setCollidable(false);
+                                                             var9.setBasePlate(false);
+                                                             var9.setGravity(false);
+-                                                            var9.teleport(var8x);
++                                                            var9.teleportAsync(var8x); // Luma - folia
+                                                             var9.setInvulnerable(true);
+                                                             var9.setVisible(false);
+                                                             ItemStack var10 = GetReward.baseIconItemStack(var6);
+@@ -451,13 +467,14 @@ public class ChestEffects {
+ 
+                                                             var9.setCustomNameVisible(true);
+                                                             DeliverRewards.deliver(var1, var6);
+-                                                            Bukkit.getScheduler().scheduleSyncDelayedTask(Main.getPlugin(Main.class), () -> {
++                                                            Bukkit.getRegionScheduler().runDelayed(Main.getPlugin(Main.class), var0.getLocation(), (ax) -> {
+                                                                var1.stopSound(Sound.AMBIENT_UNDERWATER_LOOP_ADDITIONS_ULTRA_RARE);
+-                                                               var14.remove();
+-                                                               var9.remove();
++                                                               Plugin pl = Main.getPlugin(Main.class);
++                                                               var14.getScheduler().run(pl, a -> var14.remove(), null);
++                                                               var9.getScheduler().run(pl, a -> var9.remove(), null);
+                                                                var0.setType(var7);
+                                                                var5.set(new NamespacedKey(Main.getPlugin(Main.class), "inUse"), PersistentDataType.INTEGER, 0);
+-                                                               var4.update();
++                                                               Bukkit.getRegionScheduler().run(pl, var4.getLocation(), (t7) -> var4.update());
+                                                                Main.INSTANCE().debugger.debug("Lightning animation was successful for " + var1.getName(), 3);
+                                                             }, 60L);
+                                                          },
+@@ -478,6 +495,7 @@ public class ChestEffects {
+             },
+             10L
+          );
++      // Luma end - folia
+       return false;
+    }
+ 
+@@ -515,46 +533,51 @@ public class ChestEffects {
+ 
+       ArrayList var14 = new ArrayList();
+       var1.playSound(var0.getLocation(), Sound.BLOCK_CAMPFIRE_CRACKLE, 3.0F, 1.2F);
+-      Bukkit.getScheduler()
+-         .scheduleSyncDelayedTask(
++      // Luma start - folia
++      Bukkit.getRegionScheduler()
++         .runDelayed(
+             Main.getPlugin(Main.class),
+-            () -> {
++            var0.getLocation(),
++            (t) -> {
+                try {
+                   var13.playSound(var0.getLocation(), Sound.BLOCK_POWDER_SNOW_STEP, 2.0F, 1.0F);
+                   var1.playSound(var0.getLocation(), Sound.BLOCK_CAMPFIRE_CRACKLE, 3.0F, 1.2F);
+                } catch (NoSuchFieldError var10x) {
+                }
+ 
+-               Bukkit.getScheduler()
+-                  .scheduleSyncDelayedTask(
++               Bukkit.getRegionScheduler()
++                  .runDelayed(
+                      Main.getPlugin(Main.class),
+-                     () -> {
++                     var0.getLocation(),
++                     (t2) -> {
+                         ArrayList var9x = new ArrayList();
+                         ArrayList var10xx = new ArrayList();
+ 
+                         for (Location var12x : var8) {
+-                           Block var13x = var12x.getBlock();
+-                           var14.add(var13x.getBlockData().getAsString());
+-                           var13x.setType(Material.SNOW_BLOCK);
+-                           BreakDailyChest.nonBreakable.add(var12x);
+-                           int var14x = (int)Math.floor(Math.random() * 5.0);
+-                           if (var14x >= 3) {
+-                              Location var15x = var12x.clone();
+-                              var15x.setY(var15x.getY() + 1.0);
+-                              var9x.add(var15x);
+-                              var10xx.add(var15x.getBlock().getBlockData().getAsString());
+-                              if (var14x == 3) {
+-                                 var15x.getBlock().setType(Material.FERN, true);
+-                              } else if (var14x == 4) {
+-                                 int var16x = (int)Math.floor(Math.random() * 3.0 + 1.0);
+-                                 var15x.getBlock().setType(Material.SNOW, false);
+-                                 Snow var17 = (Snow)var15x.getBlock().getBlockData();
+-                                 var17.setLayers(var16x);
+-                                 var15x.getBlock().setBlockData(var17);
+-                              }
+-
+-                              BreakDailyChest.nonBreakable.add(var15x);
+-                           }
++                           Bukkit.getRegionScheduler().run(Main.getPlugin(Main.class), var12x, (t3) -> {
++                               Block var13x = var12x.getBlock();
++                               var14.add(var13x.getBlockData().getAsString());
++                               var13x.setType(Material.SNOW_BLOCK);
++                               BreakDailyChest.nonBreakable.add(var12x);
++                               int var14x = (int)Math.floor(Math.random() * 5.0);
++                               if (var14x >= 3) {
++                                   Location var15x = var12x.clone();
++                                   var15x.setY(var15x.getY() + 1.0);
++                                   var9x.add(var15x);
++                                   var10xx.add(var15x.getBlock().getBlockData().getAsString());
++                                   if (var14x == 3) {
++                                       var15x.getBlock().setType(Material.FERN, true);
++                                   } else if (var14x == 4) {
++                                       int var16x = (int)Math.floor(Math.random() * 3.0 + 1.0);
++                                       var15x.getBlock().setType(Material.SNOW, false);
++                                       Snow var17 = (Snow)var15x.getBlock().getBlockData();
++                                       var17.setLayers(var16x);
++                                       var15x.getBlock().setBlockData(var17);
++                                   }
++
++                                   BreakDailyChest.nonBreakable.add(var15x);
++                               }
++                           });
+                         }
+ 
+                         try {
+@@ -563,10 +586,10 @@ public class ChestEffects {
+                         } catch (NoSuchFieldError var18) {
+                         }
+ 
+-                        Bukkit.getScheduler()
+-                           .scheduleSyncDelayedTask(
++                        var1.getScheduler()
++                           .runDelayed(
+                               Main.getPlugin(Main.class),
+-                              () -> {
++                              (ax) -> {
+                                  var1.playSound(var0.getLocation(), Sound.BLOCK_CAMPFIRE_CRACKLE, 3.0F, 1.2F);
+                                  final Location var11x = var0.getLocation();
+                                  var11x.setY(var11x.getY() + 5.0);
+@@ -574,26 +597,24 @@ public class ChestEffects {
+                                  var11x.setZ(var11x.getZ() + 0.5);
+                                  if (var2.getBoolean("RedeemParticleEffects")) {
+                                     final int[] var12xx = new int[]{0};
+-                                    (new BukkitRunnable() {
+-                                       public void run() {
+-                                          if (var12xx[0] == 7) { // Luma - decompile
+-                                             this.cancel();
+-                                          } else {
+-                                             var12xx[0]++; // Luma - decompile
+-
+-                                             try {
++                                    var1.getScheduler().runAtFixedRate(Main.INSTANCE(), task -> {
++                                        if (var12xx[0] == 7) { // Luma - decompile
++                                            task.cancel();
++                                        } else {
++                                            var12xx[0]++; // Luma - decompile
++
++                                            try {
+                                                 var1.spawnParticle(Particle.SNOWFLAKE, var11x, 25, -2.0, -3.0, -2.0, 0.1); // Luma - decompile
+-                                             } catch (NoSuchFieldError var2x) {
+-                                             }
+-                                          }
+-                                       }
+-                                    }).runTaskTimer(Main.INSTANCE(), 0L, 20L);
++                                            } catch (NoSuchFieldError var2x) {
++                                            }
++                                        }
++                                    }, null, 1L, 20L);
+                                  }
+ 
+                                  final ArmorStand var22 = (ArmorStand)Bukkit.getWorld(var1.getWorld().getName()).spawnEntity(var11x, EntityType.ARMOR_STAND);
+                                  var22.setCollidable(false);
+                                  var22.setBasePlate(false);
+-                                 var22.teleport(var11x);
++                                 var22.teleportAsync(var11x); // Luma - folia
+                                  var22.setVisible(false);
+                                  var22.setSmall(true);
+                                  ItemStack var13xx = christmasPresent;
+@@ -665,7 +686,7 @@ public class ChestEffects {
+                                           var13xxx.setCollidable(false);
+                                           var13xxx.setBasePlate(false);
+                                           var13xxx.setGravity(false);
+-                                          var13xxx.teleport(var12xxx);
++                                          var13xxx.teleportAsync(var12xxx); // Luma - folia
+                                           var13xxx.setVisible(false);
+                                           Location var14xxx = var1.getLocation();
+                                           var14xxx.setY(var14xxx.getY() + 20.0);
+@@ -725,7 +746,7 @@ public class ChestEffects {
+                                        40L
+                                     );
+                               },
+-                              20L
++                              null,20L
+                            );
+                      },
+                      10L
+@@ -734,6 +755,7 @@ public class ChestEffects {
+             10L
+          );
+       Biome var15 = var0.getBiome();
++      // Luma end - folia
+       return false;
+    }
+ }
+diff --git a/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java b/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
+index 31d22d2..9153ca6 100644
+--- a/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
++++ b/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
+@@ -1,6 +1,7 @@
+ package uhfinn.dailyrewardsplus.Modules;
+ 
+ import java.util.List;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.regex.Matcher;
+ import java.util.regex.Pattern;
+ import org.bukkit.Bukkit;
+@@ -17,36 +18,41 @@ import uhfinn.dailyrewardsplus.Modules.YmlManipulation.YMLFiles.Rewards.GetRewar
+ 
+ public class DeliverRewards {
+    public static void deliver(Player var0, int var1) {
+-      boolean var2 = false;
++      AtomicBoolean var2 = new AtomicBoolean(false);
+       FileConfiguration var3 = CustomYMLFiles.getCustomConfigFile("Messages.yml");
+       ConsoleCommandSender var4 = Bukkit.getServer().getConsoleSender();
+       List<String> var5 = GetReward.command(var1); // Luma - decompile
+ 
+-      for (String var7 : var5) {
+-         if (var7 != null && !var7.equals("") && !var7.equals(" ")) {
+-            Pattern var8 = Pattern.compile("\\[(\\S+)\\]\\s*(.*)");
+-            Matcher var9 = var8.matcher(var7);
+-            if (var9.matches()) {
+-               String var10 = var9.group(1);
+-               String var11 = var9.group(2);
+-               if (var10 != null && !var10.equals("") && var0.hasPermission(var10)) {
+-                  String var12 = Hex.hexTranslate(PAPIReplacement.ReplacePlaceholders(var0, PlaceholderReplacement.replace(var11, var0)));
+-                  Bukkit.dispatchCommand(var4, var12);
+-                  Main.INSTANCE().debugger.debug("Fired bonus[" + var10 + "] command: /" + var12, 3);
+-                  var2 = true;
++      // Luma start - folia
++      Bukkit.getGlobalRegionScheduler().run(Main.INSTANCE(), (t) -> {
++         for (String var7 : var5) {
++            if (var7 != null && !var7.equals("") && !var7.equals(" ")) {
++               Pattern var8 = Pattern.compile("\\[(\\S+)\\]\\s*(.*)");
++               Matcher var9 = var8.matcher(var7);
++               if (var9.matches()) {
++                  String var10 = var9.group(1);
++                  String var11 = var9.group(2);
++                  if (var10 != null && !var10.equals("") && var0.hasPermission(var10)) {
++                     String var12 = Hex.hexTranslate(PAPIReplacement.ReplacePlaceholders(var0, PlaceholderReplacement.replace(var11, var0)));
++                     Bukkit.dispatchCommand(var4, var12);
++                     Main.INSTANCE().debugger.debug("Fired bonus[" + var10 + "] command: /" + var12, 3);
++                     var2.set(true);
++                  }
++               } else {
++                  String var14 = Hex.hexTranslate(PAPIReplacement.ReplacePlaceholders(var0, PlaceholderReplacement.replace(var7, var0)));
++                  Bukkit.dispatchCommand(var4, var14);
++                  Main.INSTANCE().debugger.debug("Fired command: /" + var14, 3);
+                }
+-            } else {
+-               String var14 = Hex.hexTranslate(PAPIReplacement.ReplacePlaceholders(var0, PlaceholderReplacement.replace(var7, var0)));
+-               Bukkit.dispatchCommand(var4, var14);
+-               Main.INSTANCE().debugger.debug("Fired command: /" + var14, 3);
+             }
+          }
+-      }
++      });
++      // Luma end - folia
++
+ 
+       Main.INSTANCE().debugger.debug("Fired " + var5.size() + "x Command's to " + var0.getName(), 1);
+       String var13 = GetReward.message(var1);
+       if (var13 == null) {
+-         if (var2 && var3.contains("BonusRewardMessage") && !var3.getString("BonusRewardMessage").equals("")) {
++         if (var2.get() && var3.contains("BonusRewardMessage") && !var3.getString("BonusRewardMessage").equals("")) {
+             var0.sendMessage(
+                Hex.hexTranslate(
+                   ConfigDataPull.PluginPrefix()
+diff --git a/uhfinn/dailyrewardsplus/Modules/PlayerData/DataFactory.java b/uhfinn/dailyrewardsplus/Modules/PlayerData/DataFactory.java
+index fa8a062..e1a0534 100644
+--- a/uhfinn/dailyrewardsplus/Modules/PlayerData/DataFactory.java
++++ b/uhfinn/dailyrewardsplus/Modules/PlayerData/DataFactory.java
+@@ -7,6 +7,8 @@ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.util.HashMap;
+ import java.util.stream.Collectors;
++
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+ import org.bukkit.Bukkit;
+ import org.bukkit.configuration.file.YamlConfiguration;
+ import org.bukkit.entity.Player;
+@@ -18,9 +20,9 @@ import uhfinn.dailyrewardsplus.Modules.YmlManipulation.YMLFiles.Config.ConfigDat
+ 
+ public class DataFactory {
+    private static HashMap<Player, DataUser> playerDataPairs = new HashMap<>();
+-   private static HashMap<Player, Integer> playerGuiUpdates = new HashMap<>();
++   private static HashMap<Player, ScheduledTask> playerGuiUpdates = new HashMap<>(); // Luma - folia
+ 
+-   public static void addGuiUpdate(Player var0, Integer var1) {
++   public static void addGuiUpdate(Player var0, ScheduledTask var1) { // Luma - folia
+       if (var1 != null) {
+          playerGuiUpdates.put(var0, var1);
+       }
+@@ -28,9 +30,9 @@ public class DataFactory {
+ 
+    public static void endGuiUpdate(Player var0) {
+       if (playerGuiUpdates.containsKey(var0)) {
+-         int var1 = playerGuiUpdates.get(var0);
++         ScheduledTask var1 = playerGuiUpdates.get(var0); // Luma - folia
+          playerGuiUpdates.remove(var0);
+-         Bukkit.getScheduler().cancelTask(var1);
++         var1.cancel(); // Luma - folia
+       }
+    }
+ 
+@@ -122,10 +124,11 @@ public class DataFactory {
+ 
+          Main.INSTANCE().database.connect();
+          SQLHandler.forceWipe();
+-         Bukkit.getScheduler()
+-            .runTaskAsynchronously(
++         // Luma start - folia
++         Bukkit.getAsyncScheduler()
++            .runNow(
+                Main.getPlugin(Main.class),
+-               () -> {
++               (t) -> {
+                   File var1 = new File(Main.INSTANCE().getDataFolder() + "/Data/Players");
+ 
+                   for (File var5 : var1.listFiles()) {
+@@ -150,6 +153,7 @@ public class DataFactory {
+                   );
+                }
+             );
++         // Luma end - folia
+          return true;
+       } catch (Exception var2) {
+          var2.printStackTrace();
+@@ -163,10 +167,11 @@ public class DataFactory {
+ 
+    public static boolean sqlToFlat(Player var0) {
+       try {
+-         Bukkit.getScheduler()
+-            .runTaskAsynchronously(
++         // Luma start - folia
++         Bukkit.getAsyncScheduler()
++            .runNow(
+                Main.getPlugin(Main.class),
+-               () -> {
++               (t) -> {
+                   try {
+                      if (Main.INSTANCE().database == null) {
+                         Main.INSTANCE().database = new Database(CustomYMLFiles.getCustomConfigFile("Config.yml"));
+@@ -210,6 +215,7 @@ public class DataFactory {
+                   }
+                }
+             );
++         // Luma end - folia
+          return true;
+       } catch (Exception var2) {
+          var2.printStackTrace();
+diff --git a/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java b/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
+index ac615bd..7f9c02c 100644
+--- a/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
++++ b/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
+@@ -21,10 +21,11 @@ public class LeaderBoardHandler {
+ 
+    public static void loadInitialDataLB(Logger var0) {
+       var0.info("[DailyRewards+] Accumulating player data for LeaderBoard placeholders, this task will run asynchronously.");
+-      Bukkit.getScheduler()
+-         .runTaskAsynchronously(
++      // Luma start - folia
++      Bukkit.getAsyncScheduler()
++         .runNow(
+             Main.getPlugin(Main.class),
+-            () -> {
++            (t) -> {
+                if (ConfigDataPull.getSQLEnabled()) {
+                   try {
+                      PreparedStatement var1 = Main.INSTANCE()
+@@ -57,6 +58,7 @@ public class LeaderBoardHandler {
+                var0.info("[DailyRewards+] Successfully acquired all player data for LeaderBoard placeholders.");
+             }
+          );
++      // Luma end - folia
+    }
+ 
+    public static String getTotRewAtPosKEY(int var0) {
+diff --git a/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java b/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
+index afea869..3ec127a 100644
+--- a/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
++++ b/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
+@@ -82,10 +82,11 @@ public class SQLHandler {
+    }
+ 
+    public static void softUpdateUser(DataUser var0) {
+-      Bukkit.getScheduler()
+-         .runTaskAsynchronously(
++      // Luma start - folia
++      Bukkit.getAsyncScheduler()
++         .runNow(
+             Main.getPlugin(Main.class),
+-            () -> {
++            (t) -> {
+                try {
+                   PreparedStatement var1 = Main.INSTANCE()
+                      .database
+@@ -110,6 +111,7 @@ public class SQLHandler {
+                }
+             }
+          );
++      // Luma end - folia
+    }
+ 
+    public static void forceInsert(String var0, int var1, long var2, long var4, int var6, int var7, int var8, String var9, int var10, long var11) {
+diff --git a/uhfinn/dailyrewardsplus/Modules/RewardGUI/GUIPage.java b/uhfinn/dailyrewardsplus/Modules/RewardGUI/GUIPage.java
+index 70fa0e4..d6f526b 100644
+--- a/uhfinn/dailyrewardsplus/Modules/RewardGUI/GUIPage.java
++++ b/uhfinn/dailyrewardsplus/Modules/RewardGUI/GUIPage.java
+@@ -4,6 +4,8 @@ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.List;
+ import java.util.stream.Collectors;
++
++import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+ import org.bukkit.Bukkit;
+ import org.bukkit.Material;
+ import org.bukkit.NamespacedKey;
+@@ -317,11 +319,12 @@ public class GUIPage {
+       return var4;
+    }
+ 
+-   public Integer startUpdateLoop(Player var1) {
++   // Luma start - folia
++   public ScheduledTask startUpdateLoop(Player var1) {
+       FileConfiguration var2 = CustomYMLFiles.getCustomConfigFile("Config.yml");
+       DataUser var3 = DataFactory.getPlayerData(var1);
+       if (this.statsSlot != null) {
+-         int var4 = Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getPlugin(Main.class), () -> {
++         ScheduledTask var4 = var1.getScheduler().runAtFixedRate(Main.getPlugin(Main.class), (t) -> {
+             if (var2.getBoolean("DataBar.Enabled") && var2.getBoolean("DataBar.Statistics.Active")) {
+                ItemStack var4x = this.inv.getItem(this.statsSlot);
+                ItemMeta var5 = var4x.getItemMeta();
+@@ -354,12 +357,13 @@ public class GUIPage {
+                var9.setItemMeta(var10);
+                this.inv.setItem(this.nextSlot, var9);
+             }
+-         }, 20L, 20L);
++         }, null, 20L, 20L);
+          return var4;
+       } else {
+          return null;
+       }
+    }
++   // Luma end - folia
+ 
+    public static List<String> stringToList(String var0) {
+       ArrayList var1 = new ArrayList();
+diff --git a/uhfinn/dailyrewardsplus/Modules/Time/playTimeHandling.java b/uhfinn/dailyrewardsplus/Modules/Time/playTimeHandling.java
+index 5c3e31d..924a609 100644
+--- a/uhfinn/dailyrewardsplus/Modules/Time/playTimeHandling.java
++++ b/uhfinn/dailyrewardsplus/Modules/Time/playTimeHandling.java
+@@ -13,28 +13,32 @@ public class playTimeHandling {
+    public static HashMap<Player, Integer> playerPlayTimes = new HashMap<>();
+ 
+    public static void playTimeUpdaterLoop() {
+-      Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.getPlugin(Main.class), () -> {
++      // Luma start - folia
++      Bukkit.getGlobalRegionScheduler().runAtFixedRate(Main.getPlugin(Main.class), (ta) -> {
+          FileConfiguration var0 = CustomYMLFiles.getCustomConfigFile("Config.yml");
+          if (var0.contains("PlaytimeRequirement") && var0.getBoolean("PlaytimeRequirement")) {
+             long var1 = getTimeValues.getTime();
+ 
+             for (Player var4 : Main.INSTANCE().getServer().getOnlinePlayers()) {
+-               DataUser var5 = DataFactory.getPlayerData(var4);
+-               if (playerPlayTimes.containsKey(var4)) {
+-                  if (var1 > var5.getNextPlayTimeReset()) {
+-                     var5.updatePlayTimeReset();
+-                     DataFactory.updateDatabase(var4, true);
+-                     playerPlayTimes.put(var4, 0);
++               var4.getScheduler().run(Main.INSTANCE(), t -> {
++                  DataUser var5 = DataFactory.getPlayerData(var4);
++                  if (playerPlayTimes.containsKey(var4)) {
++                     if (var1 > var5.getNextPlayTimeReset()) {
++                        var5.updatePlayTimeReset();
++                        DataFactory.updateDatabase(var4, true);
++                        playerPlayTimes.put(var4, 0);
++                     } else {
++                        playerPlayTimes.put(var4, playerPlayTimes.get(var4) + 1);
++                     }
+                   } else {
+-                     playerPlayTimes.put(var4, playerPlayTimes.get(var4) + 1);
++                     Main.INSTANCE().debugger.debug("Cached " + var4.getName() + "'s temporary playtime value in memory", 2);
++                     playerPlayTimes.put(var4, 0);
+                   }
+-               } else {
+-                  Main.INSTANCE().debugger.debug("Cached " + var4.getName() + "'s temporary playtime value in memory", 2);
+-                  playerPlayTimes.put(var4, 0);
+-               }
++               }, null);
+             }
+          }
+       }, 20L, 20L);
++      // Luma end - folia
+    }
+ 
+    public static void playerLeft(Player var0) {
