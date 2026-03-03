@@ -8,23 +8,25 @@ import java.io.ByteArrayOutputStream
 
 plugins {
     id("java-library")
-    id("io.freefair.lombok") version "9.2.0"
+    //id("io.freefair.lombok") version "9.2.0"
     id("com.gradleup.shadow") version "9.3.1"
 }
 
-// TODO: Configure
-group = "dev.lumas.decompile_patcher_template"
-version = "0.0.0"
+
+group = "uhfinn.dailyrewardsplus"
+version = "1.3.1"
 
 repositories {
-    // TODO: Configure
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.helpch.at/releases")
 }
 
 dependencies {
-    // TODO: Configure
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+    compileOnly("me.clip:placeholderapi:2.12.2")
 }
 
-// TODO: Configure
+
 tasks {
     shadowJar {
         archiveClassifier.set("")
@@ -47,20 +49,24 @@ tasks {
     }
 }
 
-// TODO: Configure
+
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
-// TODO: Configure
+
 val decompileConfig = DecompileConfig(
-    inputJar = "sources/Decompile-Patcher-Template.jar",
+    inputJar = "sources/DailyRewardsPlus-1.3.1.jar",
     packageMappings = mapOf(
-        "dev/lumas/decompile_patcher_template" to "."
+        "uhfinn/dailyrewardsplus" to "."
     ),
     resourceMappings = mapOf(
         "plugin.yml" to ".",
-        //"config.yml" to "."
+        "Config.yml" to ".",
+        "Messages.yml" to ".",
+        "Rewards.yml" to ".",
+        "Data" to ".",
+        "Internal" to "."
     )
 )
 

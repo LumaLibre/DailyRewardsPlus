@@ -1,0 +1,322 @@
+diff --git a/uhfinn/dailyrewardsplus/Commands/daily.java b/uhfinn/dailyrewardsplus/Commands/daily.java
+index 335957c..4536fe4 100644
+--- a/uhfinn/dailyrewardsplus/Commands/daily.java
++++ b/uhfinn/dailyrewardsplus/Commands/daily.java
+@@ -507,8 +507,8 @@ public class daily implements CommandExecutor {
+                            } else if (var7.equalsIgnoreCase("deleteCommand:")) {
+                               String var50 = String.join(" ", var2);
+                               String var71 = var50.split(": ")[1];
+-                              List var10 = var3.getStringList("Day " + var4 + ".RewardCommands");
+-                              ArrayList var11 = new ArrayList();
++                              List<String> var10 = var3.getStringList("Day " + var4 + ".RewardCommands"); // Luma - decompile
++                              ArrayList<String> var11 = new ArrayList<>(); // Luma - decompile
+                               String var12;
+                               if (var71.charAt(0) == '/') {
+                                  var12 = ("a" + var71).split("/")[1];
+@@ -536,7 +536,7 @@ public class daily implements CommandExecutor {
+                            } else if (var7.equalsIgnoreCase("addHandItem")) {
+                               ItemStack var51 = var1.getInventory().getItemInMainHand();
+                               if (var51.getType() != Material.AIR) {
+-                                 List var72 = var3.getStringList("Day " + var4 + ".RewardCommands");
++                                 List<String> var72 = var3.getStringList("Day " + var4 + ".RewardCommands"); // Luma - decompile
+                                  ArrayList var81 = new ArrayList();
+ 
+                                  for (String var91 : var72) {
+@@ -579,7 +579,7 @@ public class daily implements CommandExecutor {
+                            } else if (var7.equalsIgnoreCase("addCommand:")) {
+                               String var52 = String.join(" ", var2);
+                               String var73 = var52.split(": ")[1];
+-                              List var82 = var3.getStringList("Day " + var4 + ".RewardCommands");
++                              List<String> var82 = var3.getStringList("Day " + var4 + ".RewardCommands"); // Luma - decompile
+                               ArrayList var90 = new ArrayList();
+ 
+                               for (String var93 : var82) {
+@@ -1567,7 +1567,7 @@ public class daily implements CommandExecutor {
+             );
+          } else if (var2.length >= 2) {
+             if (var2[1].equalsIgnoreCase("yes")) {
+-               List var4 = var1.getNearbyEntities(2.0, 2.0, 2.0);
++               List<Entity> var4 = var1.getNearbyEntities(2.0, 2.0, 2.0); // Luma - decompile
+                int var5 = 0;
+ 
+                for (Entity var7 : var4) {
+diff --git a/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java b/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
+index 9687625..35d3e80 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
++++ b/uhfinn/dailyrewardsplus/Listeners/BreakDailyChest.java
+@@ -117,7 +117,7 @@ public class BreakDailyChest implements Listener {
+                   Main.INSTANCE().debugger.debug(var2.getName() + " attempted to break a daily reward chest", 3);
+                   if ((Integer)var5.get(new NamespacedKey(Main.getPlugin(Main.class), "inUse"), PersistentDataType.INTEGER) == 0) {
+                      Main.INSTANCE().debugger.debug(var2.getName() + " just broke a daily reward chest'", 2);
+-                     Collection var12 = var3.getWorld().getNearbyEntities(var3.getLocation(), 1.0, 1.5, 1.0);
++                     Collection<Entity> var12 = var3.getWorld().getNearbyEntities(var3.getLocation(), 1.0, 1.5, 1.0); // Luma - decompile
+                      int var14 = 0;
+ 
+                      for (Entity var17 : var12) {
+diff --git a/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java b/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
+index 68a2257..9da385b 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
++++ b/uhfinn/dailyrewardsplus/Listeners/PlayerJoin.java
+@@ -107,7 +107,7 @@ public class PlayerJoin implements Listener {
+                Main.getPlugin(Main.class),
+                () -> {
+                   ConsoleCommandSender var2x = Bukkit.getServer().getConsoleSender();
+-                  List var3x = GetReward.command(var3.getCurrentStreak() + 1);
++                  List<String> var3x = GetReward.command(var3.getCurrentStreak() + 1); // Luma - decompile
+ 
+                   for (String var5 : var3x) {
+                      if (var5 != null && !var5.equals("") && !var5.equals(" ")) {
+diff --git a/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java b/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
+index f375b70..0cd6114 100644
+--- a/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
++++ b/uhfinn/dailyrewardsplus/Listeners/PlayerLeave.java
+@@ -29,7 +29,7 @@ public class PlayerLeave implements Listener {
+ 
+       try {
+          DataFactory.closeUser(var2);
+-      } catch (SQLException var4) {
++      } catch (Exception var4) { // Luma - decompile
+          Bukkit.getLogger()
+             .info(
+                "[DailyRewards+] Error while saving SQL user data for "
+diff --git a/uhfinn/dailyrewardsplus/Main.java b/uhfinn/dailyrewardsplus/Main.java
+index 672f93d..9cc1f57 100644
+--- a/uhfinn/dailyrewardsplus/Main.java
++++ b/uhfinn/dailyrewardsplus/Main.java
+@@ -38,7 +38,7 @@ public class Main extends JavaPlugin {
+    }
+ 
+    public void onEnable() {
+-      loadConfig0();
++      //loadConfig0(); // Luma - decompile
+       _instance = this;
+       this.debugger = new Debugger();
+       File var1 = new File(INSTANCE().getDataFolder() + "/Config.yml");
+diff --git a/uhfinn/dailyrewardsplus/Modules/ChestEffects.java b/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
+index 0cc2b93..14265ca 100644
+--- a/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
++++ b/uhfinn/dailyrewardsplus/Modules/ChestEffects.java
+@@ -493,7 +493,7 @@ public class ChestEffects {
+       }
+ 
+       World var13 = var0.getWorld();
+-      ArrayList var8 = new ArrayList();
++      ArrayList<Location> var8 = new ArrayList<>(); // Luma - decompile
+ 
+       for (int var9 = 0; var9 < 3; var9++) {
+          for (int var10 = 0; var10 < 3; var10++) {
+@@ -576,13 +576,13 @@ public class ChestEffects {
+                                     final int[] var12xx = new int[]{0};
+                                     (new BukkitRunnable() {
+                                        public void run() {
+-                                          if (var12[0] == 7) {
++                                          if (var12xx[0] == 7) { // Luma - decompile
+                                              this.cancel();
+                                           } else {
+-                                             var12[0]++;
++                                             var12xx[0]++; // Luma - decompile
+ 
+                                              try {
+-                                                var3.spawnParticle(Particle.SNOWFLAKE, var11, 25, -2.0, -3.0, -2.0, 0.1);
++                                                var1.spawnParticle(Particle.SNOWFLAKE, var11x, 25, -2.0, -3.0, -2.0, 0.1); // Luma - decompile
+                                              } catch (NoSuchFieldError var2x) {
+                                              }
+                                           }
+@@ -625,7 +625,7 @@ public class ChestEffects {
+                                           }
+ 
+                                           var20[0] = true;
+-                                          Animations.ChestAnimation(var1, true);
++                                          Animations.ChestAnimation(var0, true); // Luma - decompile
+                                        }
+ 
+                                        if (var22.getLocation().add(var1x).getBlock().getType().isSolid()) {
+diff --git a/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java b/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
+index 6e1fab1..31d22d2 100644
+--- a/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
++++ b/uhfinn/dailyrewardsplus/Modules/DeliverRewards.java
+@@ -20,7 +20,7 @@ public class DeliverRewards {
+       boolean var2 = false;
+       FileConfiguration var3 = CustomYMLFiles.getCustomConfigFile("Messages.yml");
+       ConsoleCommandSender var4 = Bukkit.getServer().getConsoleSender();
+-      List var5 = GetReward.command(var1);
++      List<String> var5 = GetReward.command(var1); // Luma - decompile
+ 
+       for (String var7 : var5) {
+          if (var7 != null && !var7.equals("") && !var7.equals(" ")) {
+diff --git a/uhfinn/dailyrewardsplus/Modules/EditMessages/Edit.java b/uhfinn/dailyrewardsplus/Modules/EditMessages/Edit.java
+index 10940e9..25fbd87 100644
+--- a/uhfinn/dailyrewardsplus/Modules/EditMessages/Edit.java
++++ b/uhfinn/dailyrewardsplus/Modules/EditMessages/Edit.java
+@@ -389,8 +389,8 @@ public class Edit {
+             var4 = new ClickerMessage(Hex.hexTranslate("\n\n\n\n&b&m------------&b< &3&lEdit Commands (Day " + var1 + ") &b>&m------------"));
+          }
+ 
+-         List var6 = var2.getStringList(var5 + ".RewardCommands");
+-         ArrayList var7 = new ArrayList();
++         List<String> var6 = var2.getStringList(var5 + ".RewardCommands"); // Luma - decompile
++         ArrayList<String> var7 = new ArrayList<>(); // Luma - decompile
+ 
+          for (String var9 : var6) {
+             if (var9 != null && !var9.equals("") && !var9.equals(" ")) {
+diff --git a/uhfinn/dailyrewardsplus/Modules/MySQL/Database.java b/uhfinn/dailyrewardsplus/Modules/MySQL/Database.java
+index 25c140e..3abfe24 100644
+--- a/uhfinn/dailyrewardsplus/Modules/MySQL/Database.java
++++ b/uhfinn/dailyrewardsplus/Modules/MySQL/Database.java
+@@ -3,6 +3,8 @@ package uhfinn.dailyrewardsplus.Modules.MySQL;
+ import java.sql.Connection;
+ import java.sql.DriverManager;
+ import java.sql.PreparedStatement;
++import java.sql.SQLException;
++
+ import org.bukkit.configuration.file.FileConfiguration;
+ import uhfinn.dailyrewardsplus.Modules.YmlManipulation.CustomYMLFiles;
+ 
+@@ -22,7 +24,7 @@ public class Database {
+       this.password = var1.getString("MySQL-Login.Password");
+    }
+ 
+-   public void connect() {
++   public void connect() throws SQLException { // Luma - decompile
+       this.connection = DriverManager.getConnection(
+          "jdbc:mysql://" + this.host + ":" + this.port + "/" + this.database + "?autoReconnect=true", this.username, this.password
+       );
+@@ -46,7 +48,7 @@ public class Database {
+       this.password = var1.getString("MySQL-Login.Password");
+    }
+ 
+-   public void reconnect() {
++   public void reconnect() throws SQLException { // Luma - decompile
+       if (this.connection != null || !this.connection.isClosed()) {
+          this.connection.close();
+       }
+@@ -56,7 +58,7 @@ public class Database {
+       );
+    }
+ 
+-   public void setup() {
++   public void setup() throws SQLException { // Luma - decompile
+       PreparedStatement var1 = this.connection
+          .prepareStatement(
+             "CREATE TABLE IF NOT EXISTS DailyRewardsPlus(UUID varchar(256) PRIMARY KEY, TotalRewards int(10), LastReward bigint, NextReward bigint, CurrentStreak int(10), CurrentAbsoluteStreak int(10), HighestStreak int(10), MissedDays varchar(1024), PlayTime int(16), nextPlayTimeReset bigint)"
+diff --git a/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java b/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
+index 80b0f47..ac615bd 100644
+--- a/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
++++ b/uhfinn/dailyrewardsplus/Modules/PlayerData/LeaderBoardHandler.java
+@@ -102,12 +102,12 @@ public class LeaderBoardHandler {
+    private static String getKeyByPosition(HashMap<String, Integer> var0, int var1) {
+       return var1 > var0.size()
+          ? null
+-         : var0.entrySet().stream().sorted(Entry.comparingByValue().reversed()).limit(var1).map(Entry::getKey).collect(Collectors.toList()).get(var1 - 1);
++         : var0.entrySet().stream().sorted(Entry.<String, Integer>comparingByValue().reversed()).limit(var1).map(Entry::getKey).collect(Collectors.toList()).get(var1 - 1); // Luma - decompile
+    }
+ 
+    private static Integer getValueByPosition(HashMap<String, Integer> var0, int var1) {
+       return var1 > var0.size()
+          ? null
+-         : var0.entrySet().stream().sorted(Entry.comparingByValue().reversed()).limit(var1).map(Entry::getValue).collect(Collectors.toList()).get(var1 - 1);
++         : var0.entrySet().stream().sorted(Entry.<String, Integer>comparingByValue().reversed()).limit(var1).map(Entry::getValue).collect(Collectors.toList()).get(var1 - 1); // Luma - decompile
+    }
+ }
+diff --git a/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java b/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
+index 8f6ce4a..afea869 100644
+--- a/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
++++ b/uhfinn/dailyrewardsplus/Modules/PlayerData/SQLHandler.java
+@@ -8,20 +8,20 @@ import org.bukkit.entity.Player;
+ import uhfinn.dailyrewardsplus.Main;
+ 
+ public class SQLHandler {
+-   public static ResultSet getAllUserData(Player var0) {
++   public static ResultSet getAllUserData(Player var0) throws SQLException { // Luma - decompile
+       createUserIfNotExist(var0);
+       PreparedStatement var1 = Main.INSTANCE().database.getCon().prepareStatement("SELECT * FROM DailyRewardsPlus WHERE UUID=?");
+       var1.setString(1, var0.getUniqueId().toString());
+       return var1.executeQuery();
+    }
+ 
+-   public static ResultSet getAllUserData(String var0) {
++   public static ResultSet getAllUserData(String var0) throws SQLException { // Luma - decompile
+       PreparedStatement var1 = Main.INSTANCE().database.getCon().prepareStatement("SELECT * FROM DailyRewardsPlus WHERE UUID=?");
+       var1.setString(1, var0);
+       return var1.executeQuery();
+    }
+ 
+-   public static void createUser(Player var0) {
++   public static void createUser(Player var0) throws SQLException { // Luma - decompile
+       PreparedStatement var1 = Main.INSTANCE().database.getCon().prepareStatement("INSERT INTO DailyRewardsPlus VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+       var1.setString(1, var0.getUniqueId().toString());
+       var1.setInt(2, 0);
+@@ -36,7 +36,7 @@ public class SQLHandler {
+       var1.execute();
+    }
+ 
+-   public static void createUserIfNotExist(Player var0) {
++   public static void createUserIfNotExist(Player var0) throws SQLException { // Luma - decompile
+       PreparedStatement var1 = Main.INSTANCE().database.getCon().prepareStatement("SELECT * FROM DailyRewardsPlus WHERE UUID=?");
+       var1.setString(1, var0.getUniqueId().toString());
+       ResultSet var2 = var1.executeQuery();
+diff --git a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/PluginData/Cleaner.java b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/PluginData/Cleaner.java
+index 018647f..0fd3b55 100644
+--- a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/PluginData/Cleaner.java
++++ b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/PluginData/Cleaner.java
+@@ -23,13 +23,13 @@ public class Cleaner {
+       if (!var2.contains("CustomItems")) {
+          return 0;
+       } else {
+-         Set var6 = var2.getConfigurationSection("CustomItems").getKeys(false);
++         Set<String> var6 = var2.getConfigurationSection("CustomItems").getKeys(false); // Luma - decompile
+ 
+          for (int var7 = 0; var7 < var5; var7++) {
+             String var8 = "Day " + var7;
+             if (var3.contains(var8)) {
+                String var9 = var3.getString(var8 + ".RewardIcon");
+-               List var10 = var3.getStringList(var8 + ".RewardCommands");
++               List<String> var10 = var3.getStringList(var8 + ".RewardCommands"); // Luma - decompile
+                if (var6.contains(var9)) {
+                   var6.remove(var9);
+                }
+diff --git a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Config/UpdateConfig.java b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Config/UpdateConfig.java
+index 1e5826b..4070c9d 100644
+--- a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Config/UpdateConfig.java
++++ b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Config/UpdateConfig.java
+@@ -1,7 +1,9 @@
+ package uhfinn.dailyrewardsplus.Modules.YmlManipulation.YMLFiles.Config;
+ 
+ import java.io.File;
++import java.io.FileNotFoundException;
+ import java.io.FileWriter;
++import java.io.IOException;
+ import java.util.Scanner;
+ import java.util.logging.Logger;
+ import org.bukkit.Bukkit;
+@@ -11,7 +13,7 @@ import uhfinn.dailyrewardsplus.Modules.YmlManipulation.CustomYMLFiles;
+ public class UpdateConfig {
+    private static final Logger logger = Bukkit.getLogger();
+ 
+-   public static boolean UpdateFileWithNotation(String var0, String var1, String var2, boolean var3) {
++   public static boolean UpdateFileWithNotation(String var0, String var1, String var2, boolean var3) throws IOException { // Luma - decompile
+       if (var3) {
+          logger.info("[DailyRewards+] Saving Files...");
+       }
+@@ -29,7 +31,7 @@ public class UpdateConfig {
+       return false;
+    }
+ 
+-   public static String getFileData(String var0, String var1, String var2) {
++   public static String getFileData(String var0, String var1, String var2) throws FileNotFoundException { // Luma - decompile
+       File var3 = new File(Main.INSTANCE().getDataFolder() + "/" + var0);
+       String var4 = "";
+       Scanner var5 = new Scanner(var3);
+diff --git a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Rewards/GetReward.java b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Rewards/GetReward.java
+index 27f0be1..9d356f7 100644
+--- a/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Rewards/GetReward.java
++++ b/uhfinn/dailyrewardsplus/Modules/YmlManipulation/YMLFiles/Rewards/GetReward.java
+@@ -67,7 +67,7 @@ public class GetReward {
+ 
+    public static int commandSize(int var0) {
+       FileConfiguration var1 = CustomYMLFiles.getCustomConfigFile("Rewards.yml");
+-      List var2 = var1.getStringList("Day " + var0 + ".RewardCommands");
++      List<String> var2 = var1.getStringList("Day " + var0 + ".RewardCommands"); // Luma - decompile
+       int var3 = 0;
+ 
+       for (String var5 : var2) {
